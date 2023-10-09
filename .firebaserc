@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "smarts-connect",
+    "connect": "smarts-connect"
+  },
+  "targets": {},
+  "etags": {}
+}
