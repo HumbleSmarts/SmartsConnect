@@ -8,9 +8,7 @@ import {
   IconButton,
   Toolbar,
   Typography,
-  makeStyles,
   useTheme,
-  withStyles,
   MenuItem,
   Menu,
   Badge,
@@ -20,6 +18,7 @@ import {
   Snackbar,
 } from "@mui/material";
 import Rooms from "./Rooms";
+import { styled } from "@mui/system";
 import { deepPurple } from "@mui/material/colors";
 import { GoSignOut } from "react-icons/go";
 import { FaUserEdit } from "react-icons/fa";
@@ -32,7 +31,7 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 const drawerWidth = 240;
 
-const StyledBadge = withStyles((theme) => ({
+const StyledBadge = styled((theme) => ({
   badge: {
     backgroundColor: "#44b700",
     color: "#44b700",
@@ -60,7 +59,7 @@ const StyledBadge = withStyles((theme) => ({
   },
 }))(Badge);
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   root: {
     display: "flex",
   },
@@ -191,7 +190,7 @@ function Application(props) {
     <div>
       <Toolbar className={classes.sideToolBar}>
         <Typography variant="h6" className={classes.sideToolBarText}>
-          CHATIFY
+          Smarts Connect
         </Typography>
       </Toolbar>
       <Divider />

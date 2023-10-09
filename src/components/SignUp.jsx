@@ -1,14 +1,15 @@
 import React from "react";
-import { Button, makeStyles, Container } from "@mui/material";
+import { Button, Container } from "@mui/material";
 import { FcGoogle } from "react-icons/fc";
 import loginImg from "../assets/login.png";
+import { styled } from "@mui/system";
 import { auth, provider } from "../Firebase/Firebase";
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   root: {
     boxShadow: "0 0 15px rgb(7 15 63 / 33%)",
     backgroundColor: "#171c30",

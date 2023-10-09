@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 // import Grid from "@material-ui/core/Grid";
-import { makeStyles, Grid, Avatar, IconButton } from "@mui/material";
+import { Grid, Avatar, IconButton } from "@mui/material";
 import { deepPurple } from "@mui/material/colors";
+import { styled } from "@mui/system";
 
 // import { Avatar } from "@material";
 // import { deepPurple } from "@material-ui/core/colors";
@@ -15,7 +16,7 @@ import { useParams } from "react-router-dom";
 import DeleteModal from "./DeleteModal";
 import { Anchorme } from "react-anchorme";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   root: {
     flexGrow: 1,
     position: "relative",

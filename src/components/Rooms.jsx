@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  makeStyles,
   List,
   ListItem,
   ListItemIcon,
@@ -11,6 +10,7 @@ import {
   Snackbar,
   Fade,
 } from "@mui/material";
+import { styled } from "@mui/system";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
@@ -22,7 +22,7 @@ import { IoMdChatboxes } from "react-icons/io";
 import { BiHash } from "react-icons/bi";
 import CreateRoom from "./CreateRoom";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   nested: {
     paddingLeft: theme.spacing(4),
   },

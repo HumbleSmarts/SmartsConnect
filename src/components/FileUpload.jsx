@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import {
-  makeStyles,
   Button,
   Dialog,
   DialogActions,
@@ -11,12 +10,13 @@ import {
   Typography,
   Box,
 } from "@mui/material";
+import { styled } from "@mui/system";
 import { storage } from "../Firebase/Firebase";
 import { useParams } from "react-router-dom";
 import * as firebase from "firebase/app";
 import { db } from "../Firebase/Firebase";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   displayImage: {
     height: "105px",
     width: "180px",

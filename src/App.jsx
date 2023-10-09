@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { makeStyles } from "@mui/material";
+import { styled } from "@mui/system";
 import Application from "./components/Application";
 import Chat from "./components/Chat";
 import Login from "./components/SignUp";
@@ -8,9 +8,10 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { auth, db } from "./Firebase/Firebase";
 import "./App.css";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   root: {
     display: "flex",
+    color: "darkslategray",
   },
   toolbar: theme.mixins.toolbar,
   content: {

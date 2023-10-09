@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { makeStyles, TextField, Grid, IconButton } from "@mui/material";
+import { TextField, Grid, IconButton } from "@mui/material";
 import Messages from "./Messages";
+import { styled } from "@mui/system";
 import { useParams } from "react-router-dom";
 import { db } from "../Firebase/Firebase";
 import * as firebase from "firebase/app";
@@ -13,7 +14,7 @@ import { RiImageAddLine } from "react-icons/ri";
 import FileUpload from "./FileUpload";
 // import "emoji-mart/css/emoji-mart.css";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   root: {
     flexGrow: 1,
   },

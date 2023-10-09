@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  makeStyles,
   Grid,
   Typography,
   Card,
@@ -8,6 +7,8 @@ import {
   CardContent,
   Avatar,
 } from "@mui/material";
+import { styled } from "@mui/system";
+
 // import Grid from "@material-ui/core/Grid";
 // import Typography from "@material-ui/core/Typography";
 // import Card from "@material-ui/core/Card";
@@ -17,7 +18,7 @@ import {
 import { db } from "../Firebase/Firebase";
 import { useNavigate } from "react-router-dom";
 
-const useStyles = makeStyles((theme) => ({
+const useStyles = styled((theme) => ({
   root: {
     paddingTop: "50px",
     paddingBottom: "25px",
