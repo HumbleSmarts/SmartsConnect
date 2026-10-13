@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   List,
   ListItem,
@@ -10,19 +10,18 @@ import {
   Snackbar,
   Fade,
 } from "@mui/material";
-import { styled } from "@mui/system";
+import { makeStyles } from "@mui/styles";
 import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import { ExpandLess, ExpandMore } from "@mui/icons-material";
-import { db } from "../Firebase/Firebase";
+import { supabase } from "../supabase/supabaseClient";
 import { useNavigate } from "react-router-dom";
-
-// import { useHistory } from "react-router-dom";
 import { IoMdChatboxes } from "react-icons/io";
 import { BiHash } from "react-icons/bi";
 import CreateRoom from "./CreateRoom";
+import { useChannels } from "../hooks/useChannels";
 
-const useStyles = styled((theme) => ({
+const useStyles = makeStyles((theme) => ({
   nested: {
     paddingLeft: theme.spacing(4),
   },
@@ -37,31 +36,18 @@ const useStyles = styled((theme) => ({
 
 function Rooms() {
   const classes = useStyles();
-  const [open, setOpen] = React.useState(true);
-  const [channelList, setChannelList] = useState([]);
+  const [open, setOpen] = useState(true);
+  const channelList = useChannels();
   const [showCreateRoom, setShowCreateRoom] = useState(false);
   const navigate = useNavigate();
   const [alert, setAlert] = useState(false);
-
-  useEffect(() => {
-    db.collection("channels")
-      .orderBy("channelName", "asc")
-      .onSnapshot((snapshot) => {
-        setChannelList(
-          snapshot.docs.map((channel) => ({
-            channelName: channel.data().channelName,
-            id: channel.id,
-          }))
-        );
-      });
-  }, []);
 
   const handleClick = () => {
     setOpen(!open);
   };
 
   const goToChannel = (id) => {
-    navigate.push(`/channel/${id}`);
+    navigate(`/channel/${id}`);
   };
 
   const manageCreateRoomModal = () => {
@@ -72,30 +58,36 @@ function Rooms() {
     setAlert(!alert);
   };
 
-  const addChannel = (cName) => {
-    if (cName) {
-      cName = cName.toLowerCase().trim();
-      if (cName === "") {
-        handleAlert();
-        return;
-      }
+  const addChannel = async (cName) => {
+    if (!cName) return;
 
-      for (var i = 0; i < channelList.length; i++) {
-        if (cName === channelList[i].channelName) {
-          handleAlert();
-          return;
-        }
-      }
-
-      db.collection("channels")
-        .add({ channelName: cName.toLowerCase() })
-        .then((res) => {
-          console.log("added new channel");
-        })
-        .then((err) => {
-          console.log(err);
-        });
+    cName = cName.toLowerCase().trim();
+    if (cName === "") {
+      handleAlert();
+      return;
     }
+
+    const alreadyExists = channelList.some(
+      (channel) => channel.channel_name === cName
+    );
+    if (alreadyExists) {
+      handleAlert();
+      return;
+    }
+
+    const { error } = await supabase
+      .from("channels")
+      .insert({ channel_name: cName });
+
+    if (error) {
+      console.log(error);
+      // Unique-constraint violation: someone else created the same name
+      // between our check above and this insert.
+      if (error.code === "23505") handleAlert();
+      return;
+    }
+
+    console.log("added new channel");
   };
 
   return (
@@ -155,9 +147,9 @@ function Rooms() {
                 </ListItemIcon>
                 <ListItemText
                   primary={
-                    channel.channelName === channel.channelName.substr(0, 12)
-                      ? channel.channelName
-                      : `${channel.channelName.substr(0, 12)}...`
+                    channel.channel_name === channel.channel_name.substr(0, 12)
+                      ? channel.channel_name
+                      : `${channel.channel_name.substr(0, 12)}...`
                   }
                   style={{ color: "#dcddde" }}
                 />

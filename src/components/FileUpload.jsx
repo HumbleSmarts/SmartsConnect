@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
   Button,
   Dialog,
@@ -10,13 +10,11 @@ import {
   Typography,
   Box,
 } from "@mui/material";
-import { styled } from "@mui/system";
-import { storage } from "../Firebase/Firebase";
+import { makeStyles } from "@mui/styles";
+import { supabase, CHAT_IMAGES_BUCKET } from "../supabase/supabaseClient";
 import { useParams } from "react-router-dom";
-import * as firebase from "firebase/app";
-import { db } from "../Firebase/Firebase";
 
-const useStyles = styled((theme) => ({
+const useStyles = makeStyles(() => ({
   displayImage: {
     height: "105px",
     width: "180px",
@@ -36,8 +34,7 @@ function FileUpload({ setState, file }) {
   const params = useParams();
   const classes = useStyles();
   const [open, setOpen] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [progressBar, setProgressBar] = useState({ display: "none" });
+  const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
 
   const handleClose = () => {
@@ -45,78 +42,55 @@ function FileUpload({ setState, file }) {
     setState();
   };
 
-  const sendMsg = (downloadURL) => {
-    if (params.id) {
-      const userData = JSON.parse(localStorage.getItem("userDetails"));
+  const sendMsg = async (imageUrl) => {
+    if (!params.id) return;
 
-      if (userData) {
-        const displayName = userData.displayName;
-        const imgUrl = userData.photoURL;
-        const uid = userData.uid;
-        const likeCount = 0;
-        const likes = {};
-        const fireCount = 0;
-        const fire = {};
-        const heartCount = 0;
-        const heart = {};
-        const postImg = downloadURL;
-        const obj = {
-          text: message,
-          timestamp: firebase.firestore.Timestamp.now(),
-          userImg: imgUrl,
-          userName: displayName,
-          uid: uid,
-          likeCount: likeCount,
-          likes: likes,
-          fireCount: fireCount,
-          fire: fire,
-          heartCount: heartCount,
-          heart: heart,
-          postImg: postImg,
-        };
+    const userData = JSON.parse(localStorage.getItem("userDetails"));
 
-        db.collection("channels")
-          .doc(params.id)
-          .collection("messages")
-          .add(obj)
-          .then((res) => {
-            console.log("message sent");
-          })
-          .catch((err) => {
-            console.log(err);
-          });
+    if (userData) {
+      const { error } = await supabase.from("messages").insert({
+        channel_id: params.id,
+        user_id: userData.uid,
+        user_name: userData.display_name,
+        user_img: userData.photo_url,
+        text: message,
+        post_img: imageUrl,
+      });
+
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("message sent");
       }
-
-      setMessage("");
     }
+
+    setMessage("");
   };
 
   const fileObj = URL.createObjectURL(file);
 
-  const handleUpload = (e) => {
+  const handleUpload = async (e) => {
     e.preventDefault();
-    setProgressBar({ display: "block" });
-    const uploadRef = storage.ref(`images/${file.name}`).put(file);
-    uploadRef.on(
-      "state_changed",
-      (snapshot) => {
-        // Observe state change events such as progress, pause, and resume
-        // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
-        let progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        setProgress(progress);
-      },
-      (error) => {
-        console.log(error);
-      },
-      () => {
-        // Handle successful uploads on complete
-        // For instance, get the download URL: https://firebasestorage.googleapis.com/...
-        uploadRef.snapshot.ref.getDownloadURL().then((downloadURL) => {
-          sendMsg(downloadURL);
-        });
-        handleClose();
-      }
-    );
+    setUploading(true);
+
+    const path = `${params.id}/${Date.now()}_${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from(CHAT_IMAGES_BUCKET)
+      .upload(path, file);
+
+    if (uploadError) {
+      console.log(uploadError);
+      setUploading(false);
+      return;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(CHAT_IMAGES_BUCKET).getPublicUrl(path);
+
+    await sendMsg(publicUrl);
+    setUploading(false);
+    handleClose();
   };
 
   return (
@@ -157,16 +131,13 @@ function FileUpload({ setState, file }) {
             />
           </form>
 
-          <div style={progressBar}>
+          {uploading ? (
             <Box display="flex" alignItems="center">
               <Box width="100%" mr={1}>
-                <LinearProgress variant="determinate" value={progress} />
-              </Box>
-              <Box minWidth={35}>
-                <Typography variant="body2">{Math.round(progress)}%</Typography>
+                <LinearProgress />
               </Box>
             </Box>
-          </div>
+          ) : null}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose} style={{ color: "white" }}>

@@ -19,10 +19,11 @@ import {
 } from "@mui/material";
 import Rooms from "./Rooms";
 import { styled } from "@mui/system";
+import { makeStyles } from "@mui/styles";
 import { deepPurple } from "@mui/material/colors";
 import { GoSignOut } from "react-icons/go";
 import { FaUserEdit } from "react-icons/fa";
-import { auth, db } from "../Firebase/Firebase";
+import { supabase } from "../supabase/supabaseClient";
 import { Link } from "react-router-dom";
 import CloseIcon from "@mui/icons-material/Close";
 import EditProfile from "./EditProfile";
@@ -31,8 +32,8 @@ import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 
 const drawerWidth = 240;
 
-const StyledBadge = styled((theme) => ({
-  badge: {
+const StyledBadge = styled(Badge)(({ theme }) => ({
+  "& .MuiBadge-badge": {
     backgroundColor: "#44b700",
     color: "#44b700",
     boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
@@ -43,6 +44,7 @@ const StyledBadge = styled((theme) => ({
       width: "100%",
       height: "100%",
       borderRadius: "50%",
+      animation: "ripple 1.2s infinite ease-in-out",
       border: "1px solid currentColor",
       content: '""',
     },
@@ -57,9 +59,9 @@ const StyledBadge = styled((theme) => ({
       opacity: 0,
     },
   },
-}))(Badge);
+}));
 
-const useStyles = styled((theme) => ({
+const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
   },
@@ -140,18 +142,53 @@ function Application(props) {
   const theme = useTheme();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [anchorEl, setAnchorEl] = React.useState(null);
-  const [userDetails, setUserDetails] = useState([]);
+  const [userDetails, setUserDetails] = useState(null);
   const [editProfileModal, setEditProfileModal] = useState(false);
   const [alert, setAlert] = useState(false);
   const open = Boolean(anchorEl);
 
   useEffect(() => {
-    db.collection("users")
-      .doc(uid)
-      .onSnapshot((doc) => {
-        setUserDetails(doc.data());
-        localStorage.setItem("userDetails", JSON.stringify(doc.data()));
+    if (!uid) return;
+
+    let isMounted = true;
+
+    const applyProfile = (profile) => {
+      if (!isMounted || !profile) return;
+      setUserDetails(profile);
+      localStorage.setItem("userDetails", JSON.stringify({ ...profile, uid }));
+    };
+
+    supabase
+      .from("profiles")
+      .select("name, display_name, photo_url, email")
+      .eq("id", uid)
+      .single()
+      .then(({ data, error }) => {
+        if (error) {
+          console.log(error);
+          return;
+        }
+        applyProfile(data);
       });
+
+    const channel = supabase
+      .channel(`profile-${uid}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+          filter: `id=eq.${uid}`,
+        },
+        (payload) => applyProfile(payload.new)
+      )
+      .subscribe();
+
+    return () => {
+      isMounted = false;
+      supabase.removeChannel(channel);
+    };
   }, [uid]);
 
   const handleMenu = (event) => {
@@ -174,16 +211,14 @@ function Application(props) {
     setAlert(!alert);
   };
 
-  const signOut = () => {
-    auth
-      .signOut()
-      .then(() => {
-        console.log("signed out");
-        localStorage.clear();
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.log(error);
+      return;
+    }
+    console.log("signed out");
+    localStorage.clear();
   };
 
   const drawer = userDetails && (
@@ -197,7 +232,7 @@ function Application(props) {
       <Grid className={classes.avatarGrid}>
         <div className={classes.avatarIcon}>
           <StyledBadge
-            overlap="circle"
+            overlap="circular"
             anchorOrigin={{
               vertical: "bottom",
               horizontal: "right",
@@ -206,12 +241,12 @@ function Application(props) {
           >
             <Avatar
               alt={userDetails.name}
-              src={userDetails.photoURL}
+              src={userDetails.photo_url}
               className={classes.purple}
             />
           </StyledBadge>
           <Typography variant="h6" className={classes.avatarDisplayName}>
-            {userDetails.displayName}
+            {userDetails.display_name}
           </Typography>
         </div>
         <div>
@@ -284,7 +319,6 @@ function Application(props) {
             <Menu
               id="menu-appbar"
               anchorEl={anchorEl}
-              getContentAnchorEl={null}
               anchorOrigin={{
                 vertical: "bottom",
                 horizontal: "center",

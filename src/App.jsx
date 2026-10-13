@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { styled } from "@mui/system";
+import { makeStyles } from "@mui/styles";
 import Application from "./components/Application";
 import Chat from "./components/Chat";
 import Login from "./components/SignUp";
 import Home from "./components/Home";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { auth, db } from "./Firebase/Firebase";
+import { supabase } from "./supabase/supabaseClient";
 import "./App.css";
 
-const useStyles = styled((theme) => ({
+const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     color: "darkslategray",
@@ -26,42 +26,19 @@ function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        db.collection("users")
-          .doc(user.uid)
-          .get()
-          .then((doc) => {
-            if (doc.exists) {
-              console.log("user exits");
-            } else {
-              const details = {
-                name: user.displayName,
-                displayName: user.displayName.split(" ")[0],
-                photoURL: user.photoURL,
-                email: user.email,
-                uid: user.uid,
-              };
-              db.collection("users")
-                .doc(user.uid)
-                .set(details)
-                .then((res) => {
-                  console.log("new user created");
-                })
-                .catch((err) => {
-                  console.log(err);
-                });
-            }
-          })
-          .catch((err) => {
-            console.log(err);
-          });
-
-        setUser(user.uid);
-      } else {
-        setUser(null);
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
     });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -71,16 +48,12 @@ function App() {
           <Login />
         ) : (
           <div className={classes.root}>
-            <Application uid={user} />
+            <Application uid={user.id} />
             <main className={classes.content}>
               <div className={classes.toolbar} style={{ minHeight: "50px" }} />
               <Routes>
-                <Route path="/" exact>
-                  <Home />
-                </Route>
-                <Route path="/channel/:id">
-                  <Chat />
-                </Route>
+                <Route path="/" element={<Home />} />
+                <Route path="/channel/:id" element={<Chat />} />
               </Routes>
             </main>
           </div>
