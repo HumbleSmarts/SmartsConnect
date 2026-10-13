@@ -1,22 +1,16 @@
-import React, { useState } from "react";
-// import Grid from "@material-ui/core/Grid";
+import { useState } from "react";
 import { Grid, Avatar, IconButton } from "@mui/material";
 import { deepPurple } from "@mui/material/colors";
-import { styled } from "@mui/system";
-
-// import { Avatar } from "@material";
-// import { deepPurple } from "@material-ui/core/colors";
-// import IconButton from "@material-ui/core/IconButton";
+import { makeStyles } from "@mui/styles";
 import { AiFillLike } from "react-icons/ai";
 import { AiFillFire } from "react-icons/ai";
 import { AiFillHeart } from "react-icons/ai";
 import { AiFillDelete } from "react-icons/ai";
-import { db } from "../Firebase/Firebase";
-import { useParams } from "react-router-dom";
+import { supabase } from "../supabase/supabaseClient";
 import DeleteModal from "./DeleteModal";
 import { Anchorme } from "react-anchorme";
 
-const useStyles = styled((theme) => ({
+const useStyles = makeStyles((theme) => ({
   root: {
     flexGrow: 1,
     position: "relative",
@@ -96,14 +90,14 @@ const useStyles = styled((theme) => ({
   },
 }));
 
-function Messages({ values, msgId }) {
+function Messages({ values, msgId, onReactionToggled }) {
   const [style, setStyle] = useState({ display: "none" });
   const [deleteModal, setDeleteModal] = useState(false);
   const classes = useStyles();
 
   const uid = JSON.parse(localStorage.getItem("userDetails")).uid;
-  const messegerUid = values.uid;
-  const date = values.timestamp.toDate();
+  const messegerUid = values.user_id;
+  const date = new Date(values.created_at);
   const day = date.getDate();
   const year = date.getFullYear();
   const month = date.getMonth();
@@ -111,17 +105,15 @@ function Messages({ values, msgId }) {
   const minute = date.getMinutes();
   const time = `${day}/${month}/${year}   ${hour}:${minute}`;
 
-  const numLikes = values.likeCount;
-  const numFire = values.fireCount;
-  const numHeart = values.heartCount;
+  const numLikes = values.like_count;
+  const numFire = values.fire_count;
+  const numHeart = values.heart_count;
 
-  const userLiked = values.likes[uid];
-  const userFire = values.fire[uid];
-  const userHeart = values.heart[uid];
+  const userLiked = values.liked_by_me;
+  const userFire = values.fired_by_me;
+  const userHeart = values.hearted_by_me;
 
-  const postImg = values.postImg;
-
-  const channelId = useParams().id;
+  const postImg = values.post_img;
 
   const selectedLike = userLiked
     ? { color: "#8ff879", backgroundColor: "#545454" }
@@ -139,201 +131,31 @@ function Messages({ values, msgId }) {
     setDeleteModal(!deleteModal);
   };
 
-  const heartClick = () => {
-    const messageDoc = db
-      .collection("channels")
-      .doc(channelId)
-      .collection("messages")
-      .doc(msgId);
-    if (userHeart) {
-      return db
-        .runTransaction((transaction) => {
-          // This code may get re-run multiple times if there are conflicts.
-          return transaction.get(messageDoc).then((doc) => {
-            if (!doc) {
-              console.log("doc not found");
-              return;
-            }
+  const toggleReaction = async (reactionType) => {
+    const { data: isActive, error } = await supabase.rpc("toggle_reaction", {
+      p_message_id: msgId,
+      p_reaction_type: reactionType,
+    });
 
-            let newHeartCount = doc.data().heartCount - 1;
-            let newHeart = doc.data().heart ? doc.data().heart : {};
-            newHeart[uid] = false;
-
-            transaction.update(messageDoc, {
-              heartCount: newHeartCount,
-              heart: newHeart,
-            });
-          });
-        })
-        .then(() => {
-          console.log("Disiked");
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    } else {
-      return db
-        .runTransaction((transaction) => {
-          // This code may get re-run multiple times if there are conflicts.
-          return transaction.get(messageDoc).then((doc) => {
-            if (!doc) {
-              console.log("doc not found");
-              return;
-            }
-
-            let newHeartCount = doc.data().heartCount + 1;
-            let newHeart = doc.data().heart ? doc.data().heart : {};
-            newHeart[uid] = true;
-
-            transaction.update(messageDoc, {
-              heartCount: newHeartCount,
-              heart: newHeart,
-            });
-          });
-        })
-        .then(() => {
-          console.log("Liked");
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+    if (error) {
+      console.log(error);
+      return;
     }
+
+    onReactionToggled(msgId, reactionType, isActive);
   };
 
-  const fireClick = () => {
-    const messageDoc = db
-      .collection("channels")
-      .doc(channelId)
-      .collection("messages")
-      .doc(msgId);
-    if (userFire) {
-      return db
-        .runTransaction((transaction) => {
-          // This code may get re-run multiple times if there are conflicts.
-          return transaction.get(messageDoc).then((doc) => {
-            if (!doc) {
-              console.log("doc not found");
-              return;
-            }
+  const likeClick = () => toggleReaction("like");
+  const fireClick = () => toggleReaction("fire");
+  const heartClick = () => toggleReaction("heart");
 
-            let newFireCount = doc.data().fireCount - 1;
-            let newFire = doc.data().fire ? doc.data().fire : {};
-            newFire[uid] = false;
-
-            transaction.update(messageDoc, {
-              fireCount: newFireCount,
-              fire: newFire,
-            });
-          });
-        })
-        .then(() => {
-          console.log("Disiked");
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    } else {
-      return db
-        .runTransaction((transaction) => {
-          // This code may get re-run multiple times if there are conflicts.
-          return transaction.get(messageDoc).then((doc) => {
-            if (!doc) {
-              console.log("doc not found");
-              return;
-            }
-
-            let newFireCount = doc.data().fireCount + 1;
-            let newFire = doc.data().fire ? doc.data().fire : {};
-            newFire[uid] = true;
-
-            transaction.update(messageDoc, {
-              fireCount: newFireCount,
-              fire: newFire,
-            });
-          });
-        })
-        .then(() => {
-          console.log("Liked");
-        })
-        .catch((error) => {
-          console.log(error);
-        });
+  const deleteMsg = async (id) => {
+    const { error } = await supabase.from("messages").delete().eq("id", id);
+    if (error) {
+      console.log(error);
+      return;
     }
-  };
-
-  const likeClick = () => {
-    const messageDoc = db
-      .collection("channels")
-      .doc(channelId)
-      .collection("messages")
-      .doc(msgId);
-    if (userLiked) {
-      return db
-        .runTransaction((transaction) => {
-          // This code may get re-run multiple times if there are conflicts.
-          return transaction.get(messageDoc).then((doc) => {
-            if (!doc) {
-              console.log("doc not found");
-              return;
-            }
-
-            let newLikeCount = doc.data().likeCount - 1;
-            let newLikes = doc.data().likes ? doc.data().likes : {};
-            newLikes[uid] = false;
-
-            transaction.update(messageDoc, {
-              likeCount: newLikeCount,
-              likes: newLikes,
-            });
-          });
-        })
-        .then(() => {
-          console.log("Disiked");
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    } else {
-      return db
-        .runTransaction((transaction) => {
-          // This code may get re-run multiple times if there are conflicts.
-          return transaction.get(messageDoc).then((doc) => {
-            if (!doc) {
-              console.log("doc not found");
-              return;
-            }
-
-            let newLikeCount = doc.data().likeCount + 1;
-            let newLikes = doc.data().likes ? doc.data().likes : {};
-            newLikes[uid] = true;
-
-            transaction.update(messageDoc, {
-              likeCount: newLikeCount,
-              likes: newLikes,
-            });
-          });
-        })
-        .then(() => {
-          console.log("Liked");
-        })
-        .catch((error) => {
-          console.log(error);
-        });
-    }
-  };
-
-  const deleteMsg = (id) => {
-    db.collection("channels")
-      .doc(channelId)
-      .collection("messages")
-      .doc(id)
-      .delete()
-      .then((res) => {
-        console.log("deleted successfully");
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+    console.log("deleted successfully");
   };
 
   return (
@@ -349,24 +171,24 @@ function Messages({ values, msgId }) {
       ) : null}
       <div
         className={classes.paper}
-        onMouseEnter={(e) => {
+        onMouseEnter={() => {
           setStyle({ display: "block" });
         }}
-        onMouseLeave={(e) => {
+        onMouseLeave={() => {
           setStyle({ display: "none" });
         }}
       >
         <div className={classes.avatar}>
           <Avatar
-            alt={values.userName}
-            src={values.userImg}
+            alt={values.user_name}
+            src={values.user_img}
             className={classes.purple}
           />
         </div>
 
         <div className={classes.chat}>
           <div>
-            <h6 className={classes.chatHeading}>{values.userName}</h6>
+            <h6 className={classes.chatHeading}>{values.user_name}</h6>
             <p className={classes.chatTimming}>{time}</p>
           </div>
 

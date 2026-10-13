@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Button,
   TextField,
@@ -7,7 +7,7 @@ import {
   DialogContent,
   DialogTitle,
 } from "@mui/material";
-import { db } from "../Firebase/Firebase";
+import { supabase } from "../supabase/supabaseClient";
 
 function EditProfile({ toggler, alert }) {
   const [open, setOpen] = useState(true);
@@ -21,19 +21,19 @@ function EditProfile({ toggler, alert }) {
     toggler();
   };
 
-  const updateProfile = (e) => {
+  const updateProfile = async (e) => {
     e.preventDefault();
-    db.collection("users")
-      .doc(uid)
-      .update({
-        displayName: displayName,
-      })
-      .then((res) => {
-        alert();
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ display_name: displayName })
+      .eq("id", uid);
+
+    if (error) {
+      console.log(error);
+    } else {
+      alert();
+    }
 
     setOpen(false);
     toggler();
@@ -42,7 +42,7 @@ function EditProfile({ toggler, alert }) {
   useEffect(() => {
     const userData = JSON.parse(localStorage.getItem("userDetails"));
     setUserName(userData.name);
-    setDisplayName(userData.displayName);
+    setDisplayName(userData.display_name);
     setEmail(userData.email);
     setUid(userData.uid);
   }, []);

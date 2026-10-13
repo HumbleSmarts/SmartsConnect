@@ -1,15 +1,14 @@
-import React from "react";
-import { Button, Container } from "@mui/material";
+import { Button, Container, Typography } from "@mui/material";
 import { FcGoogle } from "react-icons/fc";
 import loginImg from "../assets/login.png";
-import { styled } from "@mui/system";
-import { auth, provider } from "../Firebase/Firebase";
+import { makeStyles } from "@mui/styles";
+import { supabase } from "../supabase/supabaseClient";
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
 import "@fontsource/roboto/700.css";
 
-const useStyles = styled((theme) => ({
+const useStyles = makeStyles((theme) => ({
   root: {
     boxShadow: "0 0 15px rgb(7 15 63 / 33%)",
     backgroundColor: "#171c30",
@@ -36,24 +35,22 @@ const useStyles = styled((theme) => ({
 function SignUp() {
   const classes = useStyles();
 
-  const login = () => {
-    auth
-      .signInWithPopup(provider)
-      .then((res) => {
-        console.log("Success");
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+  const login = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+    });
+    if (error) {
+      console.log(error);
+    }
   };
 
   return (
     <Container component="div" maxWidth="xs" className={classes.root}>
       <div className={classes.paper}>
         <img src={loginImg} className={classes.mainImg} alt="signup img" />
-        <Topography variant="h4" style={{ paddingTop: "15px" }}>
+        <Typography variant="h4" style={{ paddingTop: "15px" }}>
           Sign In To Chatify
-        </Topography>
+        </Typography>
         <Button
           variant="outlined"
           color="primary"

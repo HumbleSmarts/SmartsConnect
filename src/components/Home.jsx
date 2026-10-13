@@ -1,4 +1,3 @@
-import React, { useState, useEffect } from "react";
 import {
   Grid,
   Typography,
@@ -7,18 +6,11 @@ import {
   CardContent,
   Avatar,
 } from "@mui/material";
-import { styled } from "@mui/system";
-
-// import Grid from "@material-ui/core/Grid";
-// import Typography from "@material-ui/core/Typography";
-// import Card from "@material-ui/core/Card";
-// import CardActionArea from "@material-ui/core/CardActionArea";
-// import CardContent from "@material-ui/core/CardContent";
-// import Avatar from "@material-ui/core/Avatar";
-import { db } from "../Firebase/Firebase";
+import { makeStyles } from "@mui/styles";
 import { useNavigate } from "react-router-dom";
+import { useChannels } from "../hooks/useChannels";
 
-const useStyles = styled((theme) => ({
+const useStyles = makeStyles(() => ({
   root: {
     paddingTop: "50px",
     paddingBottom: "25px",
@@ -67,24 +59,11 @@ const useStyles = styled((theme) => ({
 
 function Home() {
   const classes = useStyles();
-  const [channels, setChannels] = useState([]);
+  const channels = useChannels();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    db.collection("channels")
-      .orderBy("channelName", "asc")
-      .onSnapshot((snapshot) => {
-        setChannels(
-          snapshot.docs.map((channel) => ({
-            channelName: channel.data().channelName,
-            id: channel.id,
-          }))
-        );
-      });
-  }, []);
-
   const goToChannel = (id) => {
-    history.push(`/channel/${id}`);
+    navigate(`/channel/${id}`);
   };
 
   return (
@@ -120,10 +99,10 @@ function Home() {
                     className={classes.square}
                     style={{ backgroundColor: "#6a9ec066" }}
                   >
-                    {channel.channelName.substr(0, 1).toUpperCase()}
+                    {channel.channel_name.substr(0, 1).toUpperCase()}
                   </Avatar>
                   <Typography className={classes.channelText}>
-                    {channel.channelName}
+                    {channel.channel_name}
                   </Typography>
                 </CardContent>
               </CardActionArea>
